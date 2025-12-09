@@ -24,11 +24,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const data = {
-  user: {
-    name: "User",
-    email: "user@example.com",
-    avatar: "/avatars/user.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -70,7 +65,13 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user?: { name: string; email: string; avatar?: string } }) {
+  const defaultUser = {
+    name: "User",
+    email: "user@example.com",
+    avatar: "/avatars/user.jpg",
+  }
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -81,7 +82,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <a href="#">
-                <IconInnerShadowTop className="!size-5" />
+                <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-gallery-vertical-end size-4" aria-hidden="true">
+                    <path d="M7 2h10"></path>
+                    <path d="M5 6h14"></path>
+                    <rect width="18" height="12" x="3" y="10" rx="2"></rect>
+                  </svg>
+                </div>
                 <span className="text-base font-semibold">Spending Tracker</span>
               </a>
             </SidebarMenuButton>
@@ -93,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user || defaultUser} />
       </SidebarFooter>
     </Sidebar>
   )

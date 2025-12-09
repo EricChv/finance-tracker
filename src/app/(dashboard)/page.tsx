@@ -37,6 +37,7 @@ export default function Home() {
   // Authentication & Navigation
   const router = useRouter()  // Next.js router for page navigation (redirects to /login if not authenticated)
   const [loading, setLoading] = useState(true)  // Loading state while checking if user is logged in
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null)  // Current logged-in user info
   
   // Manual Expense Form (local state, not yet connected to database)
   const [expenses, setExpenses] = useState<Expense[]>([])  // Array of manually entered expenses
@@ -65,7 +66,11 @@ export default function Home() {
         // No user logged in → redirect to login page
         router.push('/login')
       } else {
-        // User is logged in → allow dashboard to render
+        // User is logged in → store user info and allow dashboard to render
+        setUser({
+          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || 'user@example.com'
+        })
         setLoading(false)
       }
     }
@@ -213,7 +218,7 @@ export default function Home() {
   // User is authenticated → render the full dashboard
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar user={user || undefined} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
@@ -249,10 +254,6 @@ export default function Home() {
                 {loadingAccounts ? '...' : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">Total across all accounts</div>
-              <div className="mt-4 flex gap-2">
-                <button className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground">Transfer</button>
-                <button className="rounded-md border px-3 py-1.5 text-xs">Request</button>
-              </div>
             </div>
 
             {/* Income */}
