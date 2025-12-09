@@ -35,24 +35,74 @@ export default function Home() {
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('Online Purchases') // default to "online-purchases" if "category" not selected
-  const router = useRouter()
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [loadingTransactions, setLoadingTransactions] = useState(true)
+  const router = useRouter() // router is created outside the useEffect and is used inside it. React's built-in linting rule flag it and demand that you include it in the dependency array: [router] --as in useEffect below.
   const [loading, setLoading] = useState(true)
 
   // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        router.push('/login') 
-      } else {
-        setLoading(false)
+      // 1. Define the asynchronous function to handle the authentication logic.
+      const checkAuth = async () => {
+        // 1.1. Initialize the Supabase client instance.
+        const supabase = createClient()
+        
+        // 1.2. Attempt to retrieve the current user session from Supabase. 
+        // This checks local storage and may validate the session with the server.
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        // 2. Conditional Logic (The Guard)
+        
+        // 2.1. If 'session' is null (no active user session found):
+        if (!session) {
+          // Redirect the user to the '/login' page. This prevents unauthorized access.
+          router.push('/login') 
+        } else {
+          // 2.2. If a valid session exists:
+          // Set the loading state to false, which allows the component (the dashboard content) to render.
+          setLoading(false)
+        }
       }
-    }
-    
-    checkAuth()
+      
+      // 3. Execute the checkAuth function immediately after component mount.
+      checkAuth()
+  // The router dependency is included to satisfy linting rules for exhaustive dependencies.
   }, [router])
+  
+  // Fetch transactions from Supabase on component mount
+  useEffect(() => {
+    // 1. Define async function to fetch transactions from database
+    const fetchTransactions = async () => {
+      // 1.1. Create Supabase client instance (reads env vars for API keys)
+      const supabase = createClient()
+
+      // 1.2. Query the 'transactions' table
+      const { data, error} = await supabase
+        .from('transactions')           // Table name in Supabase
+        .select('*')                    // Select all columns (id, amount, description, etc.)
+        .order('date', { ascending: false })  // Sort by date, newest first
+        .limit(3)                       // Only get 3 most recent transactions
+      
+      // RLS Policy automatically adds: WHERE user_id = auth.uid()
+      // So user only sees their own transactions!
+
+      // 2. Handle the response
+      if (error) {
+        // 2.1. If database query failed, log error to console
+        console.error('Error fetching transactions: ', error)
+      } else {
+        // 2.2. If successful, update state with data
+        // (data || []) prevents null errors - uses empty array if data is null
+        setTransactions(data || [])
+      }
+
+      // 3. Stop loading spinner regardless of success/failure
+      setLoadingTransactions(false)
+    }
+
+    // 4. Execute the fetch function immediately
+    fetchTransactions()
+  }, [])  // Empty dependency array = run once on mount, never again
   
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,7 +130,7 @@ export default function Home() {
     // sum + expense.amount - adds each expense's amount to the running total
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0)
   
-  // Show loading state while checking authentication
+  // if loading -> Show loading state while checking authentication
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -88,7 +138,8 @@ export default function Home() {
       </div>
     )
   }
-
+  
+  // else return entire component
   return (
     <SidebarProvider>
       <AppSidebar />
