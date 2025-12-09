@@ -36,19 +36,9 @@ const data = {
       icon: IconReceipt,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
       title: "Accounts",
       url: "#",
       icon: IconWallet,
-    },
-    {
-      title: "Credit Cards",
-      url: "#",
-      icon: IconCreditCard,
     },
   ],
   navSecondary: [
@@ -95,7 +85,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="pt-2">
         <NavMain items={data.navMain} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
