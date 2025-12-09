@@ -30,140 +30,178 @@ interface Expense {
 
 export default function Home() {
   
-  // State declaration:
-  const [expenses, setExpenses] = useState<Expense[]>([]) // arr of expense objs
-  const [amount, setAmount] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('Online Purchases') // default to "online-purchases" if "category" not selected
-  const [transactions, setTransactions] = useState<any[]>([])
-  const [loadingTransactions, setLoadingTransactions] = useState(true)
-  const [accounts, setAccounts] = useState<any[]>([])
-  const [loadingAccounts, setLoadingAccounts] = useState(true)
-  const router = useRouter() // router is created outside the useEffect and is used inside it. React's built-in linting rule flag it and demand that you include it in the dependency array: [router] --as in useEffect below.
-  const [loading, setLoading] = useState(true)
-
-  // Check authentication on mount
-  useEffect(() => {
-      // 1. Define the asynchronous function to handle the authentication logic.
-      const checkAuth = async () => {
-        // 1.1. Initialize the Supabase client instance.
-        const supabase = createClient()
-        
-        // 1.2. Attempt to retrieve the current user session from Supabase. 
-        // This checks local storage and may validate the session with the server.
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        // 2. Conditional Logic (The Guard)
-        
-        // 2.1. If 'session' is null (no active user session found):
-        if (!session) {
-          // Redirect the user to the '/login' page. This prevents unauthorized access.
-          router.push('/login') 
-        } else {
-          // 2.2. If a valid session exists:
-          // Set the loading state to false, which allows the component (the dashboard content) to render.
-          setLoading(false)
-        }
-      }
-      
-      // 3. Execute the checkAuth function immediately after component mount.
-      checkAuth()
-  // The router dependency is included to satisfy linting rules for exhaustive dependencies.
-  }, [router])
+  // ═══════════════════════════════════════════════════════════════════
+  // STATE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════
   
-  // Fetch transactions from Supabase on component mount
+  // Authentication & Navigation
+  const router = useRouter()  // Next.js router for page navigation (redirects to /login if not authenticated)
+  const [loading, setLoading] = useState(true)  // Loading state while checking if user is logged in
+  
+  // Manual Expense Form (local state, not yet connected to database)
+  const [expenses, setExpenses] = useState<Expense[]>([])  // Array of manually entered expenses
+  const [amount, setAmount] = useState('')  // Form input: dollar amount being entered
+  const [description, setDescription] = useState('')  // Form input: what the expense was for
+  const [category, setCategory] = useState('Online Purchases')  // Form input: expense category dropdown
+  
+  // Transactions from Database (for display and calculations)
+  const [transactions, setTransactions] = useState<any[]>([])  // 3 most recent transactions (for "Recent Transactions" section)
+  const [allTransactions, setAllTransactions] = useState<any[]>([])  // ALL transactions (for calculating totals)
+  const [loadingTransactions, setLoadingTransactions] = useState(true)  // Loading state for transaction queries
+  
+  // Accounts from Database (bank accounts & credit cards)
+  const [accounts, setAccounts] = useState<any[]>([])  // All user accounts from database
+  const [loadingAccounts, setLoadingAccounts] = useState(true)  // Loading state for accounts query
+
+  // ═══════════════════════════════════════════════════════════════════
+  // AUTHENTICATION CHECK (runs once when page loads)
+  // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
-    // 1. Define async function to fetch transactions from database
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        // No user logged in → redirect to login page
+        router.push('/login')
+      } else {
+        // User is logged in → allow dashboard to render
+        setLoading(false)
+      }
+    }
+    
+    checkAuth()
+  }, [router])  // Runs once on mount, reruns if router changes
+  
+  // ═══════════════════════════════════════════════════════════════════
+  // FETCH TRANSACTIONS FROM DATABASE (runs once when page loads)
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
     const fetchTransactions = async () => {
-      // 1.1. Create Supabase client instance (reads env vars for API keys)
       const supabase = createClient()
 
-      // 1.2. Query the 'transactions' table
-      const { data, error} = await supabase
-        .from('transactions')           // Table name in Supabase
-        .select('*')                    // Select all columns (id, amount, description, etc.)
-        .order('date', { ascending: false })  // Sort by date, newest first
-        .limit(3)                       // Only get 3 most recent transactions
+      // Query 1: Get ALL transactions (for calculating totals like income/expenses)
+      const { data: allData, error: allError } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false })
       
-      // RLS Policy automatically adds: WHERE user_id = auth.uid()
-      // So user only sees their own transactions!
+      if (allError) {
+        console.error('Error fetching all transactions:', allError)
+      } else {
+        setAllTransactions(allData || [])  // Store all transactions for calculations
+      }
 
-      // 2. Handle the response
+      // Query 2: Get only 3 most recent transactions (for "Recent Transactions" UI section)
+      const { data, error} = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(3)  // Only need 3 for display
+      
+      // 🔐 Security Note: RLS (Row Level Security) automatically filters results
+      // Only transactions where user_id = auth.uid() are returned
+      // Users can NEVER see other users' transactions!
+
       if (error) {
-        // 2.1. If database query failed, log error to console
         console.error('Error fetching transactions: ', error)
       } else {
-        // 2.2. If successful, update state with data
-        // (data || []) prevents null errors - uses empty array if data is null
-        setTransactions(data || [])
+        setTransactions(data || [])  // Store recent transactions for display
       }
 
-      // 3. Stop loading spinner regardless of success/failure
-      setLoadingTransactions(false)
+      setLoadingTransactions(false)  // Stop showing loading spinner
     }
 
-    // 4. Execute the fetch function immediately
     fetchTransactions()
-  }, [])  // Empty dependency array = run once on mount, never again
+  }, [])  // Empty array [] = run once when component mounts, never run again
   
-  // Fetch accounts from Supabase on component mount
+  // ═══════════════════════════════════════════════════════════════════
+  // FETCH ACCOUNTS FROM DATABASE (runs once when page loads)
+  // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
-    // 1. Define async function to fetch accounts from database
     const fetchAccounts = async () => {
-      // 1.1. Create Supabase client instance
       const supabase = createClient()
 
-      // 1.2. Query the 'accounts' table (bank accounts & credit cards)
+      // Query all accounts (checking, savings, credit cards)
       const { data, error } = await supabase
-        .from('accounts')                          // Table name in Supabase
-        .select('*')                               // Select all columns
-        .order('created_at', { ascending: false }) // Newest accounts first
+        .from('accounts')
+        .select('*')
+        .order('created_at', { ascending: false })  // Newest accounts first
       
-      // RLS Policy automatically adds: WHERE user_id = auth.uid()
-      // So user only sees their own accounts!
+      // 🔐 Security Note: RLS automatically filters to only this user's accounts
+      // WHERE user_id = auth.uid() is added automatically by Supabase
 
-      // 2. Handle the response
       if (error) {
         console.error('Error fetching accounts:', error)
       } else {
-        setAccounts(data || [])
+        setAccounts(data || [])  // Store accounts for display and calculations
       }
 
-      // 3. Stop loading spinner
-      setLoadingAccounts(false)
+      setLoadingAccounts(false)  // Stop showing loading spinner
     }
 
-    // 4. Execute the fetch function immediately
     fetchAccounts()
-  }, [])  // Empty dependency array = run once on mount, never again
+  }, [])  // Empty array [] = run once when component mounts, never run again
   
+  // ═══════════════════════════════════════════════════════════════════
+  // EVENT HANDLERS (functions triggered by user actions)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Handle manual expense form submission
   const handleAddExpense = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault()  // Stop browser from refreshing page (default form behavior)
+    
     const newExpense: Expense = {
-      id: crypto.randomUUID(), // collision proofing
-      amount: parseFloat(amount),
-      description,
+      id: crypto.randomUUID(),  // Generate unique ID (prevents duplicates)
+      amount: parseFloat(amount),  // Convert string "50.00" → number 50.00
+      description,  // Shorthand for description: description
       category,
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0]  // Format: "2025-12-09"
     }
-    setExpenses([...expenses, newExpense]) // spread operator, copies all existing expenses. adds the new one at the end
-    setAmount('') // Clears all the form inputs
+    
+    setExpenses([...expenses, newExpense])  // Add new expense to array using spread operator
+    
+    // Clear form inputs after submission
+    setAmount('')
     setDescription('')
-    setCategory('online-purchases') // Resets category back to default 'food'
+    setCategory('online-purchases')
   }
 
+  // Delete expense by filtering it out of the array
   const handleDeleteExpense = (id: string) => {
-  setExpenses(expenses.filter(expense => expense.id !== id))
+    setExpenses(expenses.filter(expense => expense.id !== id))  // Keep all expenses EXCEPT the one with matching id
   }
 
-  // handle total calculation:
-    // .reduce() - loops through all expenses and accumulates a value
-    // sum - the running total (starts at 0)
-    // expense - each expense object as we loop
-    // sum + expense.amount - adds each expense's amount to the running total
+  // ═══════════════════════════════════════════════════════════════════
+  // FINANCIAL CALCULATIONS (computed from database data)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Total Income: sum of all transactions where type = 'income'
+  const totalIncome = allTransactions
+    .filter(t => t.type === 'income')  // Only income transactions
+    .reduce((sum, t) => sum + t.amount, 0)  // Add up all amounts (starts at 0)
+  
+  // Total Expenses: sum of all transactions where type = 'expense'
+  const totalExpenses = allTransactions
+    .filter(t => t.type === 'expense')  // Only expense transactions
+    .reduce((sum, t) => sum + t.amount, 0)  // Add up all amounts
+  
+  // Total Balance: sum of all account balances (checking + savings + credit cards)
+  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0)
+  
+  // Total Debts: sum of negative balances on credit cards only
+  const totalDebts = accounts
+    .filter(acc => acc.type === 'credit_card' && acc.balance < 0)  // Only credit cards with debt
+    .reduce((sum, acc) => sum + Math.abs(acc.balance), 0)  // Make positive and add up
+  
+  // Manual Expense Total: sum of local expenses (not connected to database yet)
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0)
   
-  // if loading -> Show loading state while checking authentication
+  // ═══════════════════════════════════════════════════════════════════
+  // RENDER LOGIC
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Show loading screen while checking if user is authenticated
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -172,7 +210,7 @@ export default function Home() {
     )
   }
   
-  // else return entire component
+  // User is authenticated → render the full dashboard
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -207,8 +245,10 @@ export default function Home() {
                 </svg>
                 My Balance
               </div>
-              <div className="mt-3 text-3xl font-bold">$125,430</div>
-              <div className="mt-1 text-xs text-green-600">↑ 12.5% compared to last month</div>
+              <div className="mt-3 text-3xl font-bold">
+                {loadingAccounts ? '...' : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Total across all accounts</div>
               <div className="mt-4 flex gap-2">
                 <button className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground">Transfer</button>
                 <button className="rounded-md border px-3 py-1.5 text-xs">Request</button>
@@ -223,8 +263,10 @@ export default function Home() {
                 </svg>
                 Income
               </div>
-              <div className="mt-3 text-3xl font-bold">$38,700</div>
-              <div className="mt-1 text-xs text-green-600">↑ 8.5% compared to last month</div>
+              <div className="mt-3 text-3xl font-bold">
+                {loadingTransactions ? '...' : `$${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Total income earned</div>
             </div>
 
             {/* Expenses */}
@@ -235,8 +277,10 @@ export default function Home() {
                 </svg>
                 Expenses
               </div>
-              <div className="mt-3 text-3xl font-bold">$26,450</div>
-              <div className="mt-1 text-xs text-red-600">↓ 5.5% compared to last month</div>
+              <div className="mt-3 text-3xl font-bold">
+                {loadingTransactions ? '...' : `$${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Total expenses spent</div>
             </div>
 
             {/* My Debts */}
@@ -247,8 +291,12 @@ export default function Home() {
                 </svg>
                 My Debts
               </div>
-              <div className="mt-3 text-3xl font-bold">$8,525</div>
-              <div className="mt-1 text-xs text-muted-foreground">Across 2 credit cards</div>
+              <div className="mt-3 text-3xl font-bold">
+                {loadingAccounts ? '...' : `$${totalDebts.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {loadingAccounts ? '' : `Across ${accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length} credit cards`}
+              </div>
             </div>
           </div>
 
@@ -258,44 +306,46 @@ export default function Home() {
             <div className="rounded-xl border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">Credit Cards Due Soon</h3>
-                <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs text-red-600">3 overdue invoices</span>
+                {!loadingAccounts && accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length > 0 && (
+                  <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs text-red-600">
+                    {accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length} cards with balance
+                  </span>
+                )}
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10">
-                      <svg className="size-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">Chase Sapphire</div>
-                      <div className="text-xs text-muted-foreground">Due Dec 15, 2025</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">$2,450</div>
-                    <div className="text-xs text-red-600">Overdue</div>
-                  </div>
+              
+              {loadingAccounts ? (
+                <p className="text-sm text-muted-foreground">Loading credit cards...</p>
+              ) : accounts.filter(acc => acc.type === 'credit_card').length === 0 ? (
+                <p className="text-sm text-muted-foreground">No credit cards added yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {accounts
+                    .filter(acc => acc.type === 'credit_card')
+                    .map((card) => (
+                      <div key={card.id} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10">
+                            <svg className="size-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium">{card.name}</div>
+                            <div className="text-xs text-muted-foreground">{card.institution}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            ${Math.abs(card.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                          <div className={`text-xs ${card.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {card.balance < 0 ? 'Balance due' : 'Credit available'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                 </div>
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10">
-                      <svg className="size-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">Amex Gold</div>
-                      <div className="text-xs text-muted-foreground">Due Dec 20, 2025</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">$1,890</div>
-                    <div className="text-xs text-muted-foreground">8 days left</div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Recent Transactions */}
