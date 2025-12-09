@@ -45,7 +45,7 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
-        router.push('/login')
+        router.push('/login') 
       } else {
         setLoading(false)
       }
@@ -71,7 +71,7 @@ export default function Home() {
 
   const handleDeleteExpense = (id: string) => {
   setExpenses(expenses.filter(expense => expense.id !== id))
-}
+  }
 
   // handle total calculation:
     // .reduce() - loops through all expenses and accumulates a value
