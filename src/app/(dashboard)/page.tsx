@@ -394,7 +394,7 @@ export default function Home() {
           <div className="rounded-xl border bg-card p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold">My Wallet</h3>
-              <button className="rounded-md border px-3 py-1.5 text-xs">+ Add New</button>
+              <a href="/accounts" className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent">+ Add New</a>
             </div>
             
             {loadingAccounts ? (
@@ -417,7 +417,7 @@ export default function Home() {
                   const gradient = gradients[index % gradients.length]
                   
                   return (
-                    <div key={account.id} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-6 text-white`}>
+                    <div key={account.id} className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${gradient} p-6 text-white`}>
                       <div className="mb-8">
                         <div className="text-xs opacity-80">{account.type.replace('_', ' ')}</div>
                         <div className="mt-1 text-base font-semibold">{account.name}</div>

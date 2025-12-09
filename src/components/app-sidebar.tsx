@@ -37,20 +37,8 @@ const data = {
     },
     {
       title: "Accounts",
-      url: "#",
+      url: "/accounts",
       icon: IconWallet,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Logout",
-      url: "/login",
-      icon: IconLogout,
     },
   ],
 }
@@ -84,7 +72,6 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       </SidebarHeader>
       <SidebarContent className="pt-2">
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user || defaultUser} />
