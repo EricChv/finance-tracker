@@ -37,6 +37,8 @@ export default function Home() {
   const [category, setCategory] = useState('Online Purchases') // default to "online-purchases" if "category" not selected
   const [transactions, setTransactions] = useState<any[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(true)
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [loadingAccounts, setLoadingAccounts] = useState(true)
   const router = useRouter() // router is created outside the useEffect and is used inside it. React's built-in linting rule flag it and demand that you include it in the dependency array: [router] --as in useEffect below.
   const [loading, setLoading] = useState(true)
 
@@ -102,6 +104,37 @@ export default function Home() {
 
     // 4. Execute the fetch function immediately
     fetchTransactions()
+  }, [])  // Empty dependency array = run once on mount, never again
+  
+  // Fetch accounts from Supabase on component mount
+  useEffect(() => {
+    // 1. Define async function to fetch accounts from database
+    const fetchAccounts = async () => {
+      // 1.1. Create Supabase client instance
+      const supabase = createClient()
+
+      // 1.2. Query the 'accounts' table (bank accounts & credit cards)
+      const { data, error } = await supabase
+        .from('accounts')                          // Table name in Supabase
+        .select('*')                               // Select all columns
+        .order('created_at', { ascending: false }) // Newest accounts first
+      
+      // RLS Policy automatically adds: WHERE user_id = auth.uid()
+      // So user only sees their own accounts!
+
+      // 2. Handle the response
+      if (error) {
+        console.error('Error fetching accounts:', error)
+      } else {
+        setAccounts(data || [])
+      }
+
+      // 3. Stop loading spinner
+      setLoadingAccounts(false)
+    }
+
+    // 4. Execute the fetch function immediately
+    fetchAccounts()
   }, [])  // Empty dependency array = run once on mount, never again
   
   const handleAddExpense = (e: React.FormEvent) => {
@@ -318,31 +351,50 @@ export default function Home() {
               <h3 className="font-semibold">My Wallet</h3>
               <button className="rounded-md border px-3 py-1.5 text-xs">+ Add New</button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Credit Card */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
-                <div className="mb-8">
-                  <div className="text-xs opacity-80">Credit Card</div>
-                  <div className="mt-1 font-mono text-lg tracking-wider">5375 •••• •••• 2368</div>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-2xl font-bold">$5,325.57</div>
-                  <div className="rounded bg-white/20 px-2 py-1 text-xs font-semibold">VISA</div>
-                </div>
+            
+            {loadingAccounts ? (
+              // Loading state while fetching accounts
+              <p className="text-sm text-muted-foreground">Loading accounts...</p>
+            ) : accounts.length === 0 ? (
+              // Empty state when no accounts exist
+              <p className="text-sm text-muted-foreground">No accounts yet. Click "+ Add New" to add your first account.</p>
+            ) : (
+              // Display real accounts from database
+              <div className="grid gap-4 md:grid-cols-2">
+                {accounts.map((account, index) => {
+                  // Alternate colors for visual variety
+                  const gradients = [
+                    'from-green-500 to-green-600',
+                    'from-blue-500 to-blue-600',
+                    'from-purple-500 to-purple-600',
+                    'from-orange-500 to-orange-600',
+                  ]
+                  const gradient = gradients[index % gradients.length]
+                  
+                  return (
+                    <div key={account.id} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-6 text-white`}>
+                      <div className="mb-8">
+                        <div className="text-xs opacity-80">{account.type.replace('_', ' ')}</div>
+                        <div className="mt-1 text-base font-semibold">{account.name}</div>
+                        {account.account_number_last_four && (
+                          <div className="mt-1 font-mono text-sm tracking-wider">
+                            •••• •••• •••• {account.account_number_last_four}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div className="text-2xl font-bold">
+                          ${Math.abs(account.balance).toFixed(2)}
+                        </div>
+                        <div className="rounded bg-white/20 px-2 py-1 text-xs font-semibold uppercase">
+                          {account.institution.substring(0, 4)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-
-              {/* Digital Card */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
-                <div className="mb-8">
-                  <div className="text-xs opacity-80">Digital Card</div>
-                  <div className="mt-1 font-mono text-lg tracking-wider">5375 •••• •••• ••45</div>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-2xl font-bold">$10,892.43</div>
-                  <div className="rounded bg-white/20 px-2 py-1 text-xs font-semibold">MC</div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </SidebarInset>
