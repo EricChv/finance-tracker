@@ -432,9 +432,11 @@ export default function Home() {
                         <div className="text-2xl font-bold">
                           ${Math.abs(account.balance).toFixed(2)}
                         </div>
-                        <div className="rounded bg-white/20 px-2 py-1 text-xs font-semibold uppercase">
-                          {account.institution.substring(0, 4)}
-                        </div>
+                        {account.institution_name && (
+                          <div className="rounded bg-white/20 px-2 py-1 text-xs font-semibold uppercase">
+                            {account.institution_name.substring(0, 4)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
