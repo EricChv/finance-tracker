@@ -98,7 +98,7 @@ export default function AccountsPage() {
   
   // Authentication & Data Loading States
   const [loading, setLoading] = useState(true)  // True while checking if user is logged in
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null)  // Logged-in user info
+  const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null)  // Logged-in user info
   const [accounts, setAccounts] = useState<Account[]>([])  // Array of all user's accounts from database
   
   // Plaid Link Token State
@@ -146,9 +146,10 @@ export default function AccountsPage() {
     // Fallback 2: Use generic "User" if email is also missing
     const userName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User'
     const userEmail = session.user.email || ''
-    
+    const userId = session.user.id
     // Store user info in state to pass to sidebar component
     setUser({
+      id: userId,
       name: userName,
       email: userEmail
     })
@@ -341,7 +342,14 @@ export default function AccountsPage() {
             </div>
             <div className="flex gap-2 mt-2 md:mt-0">
               {/* Plaid Link Button (only show if link token is available) */}
-              {plaidLinkToken && <PlaidLinkButton linkToken={plaidLinkToken} />}
+              {plaidLinkToken && user && (
+                <PlaidLinkButton
+                  linkToken={plaidLinkToken}
+                  userId={user.id}
+                  onAccountsAdded={fetchAccounts}
+                />
+              )}
+
               {/* Toggle button: Shows "+ Add New" or "Cancel" based on form visibility */}
               <Button 
                 onClick={() => setShowForm(!showForm)}

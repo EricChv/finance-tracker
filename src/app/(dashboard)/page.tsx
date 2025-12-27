@@ -245,14 +245,14 @@ export default function Home() {
           {/* Top Stats Grid */}
           <div className="grid gap-4 md:grid-cols-4">
             {/* My Balance */}
-            <div className="rounded-xl border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 ">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
                 My Balance
               </div>
-              <div className="mt-3 text-3xl font-bold">
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
                 {loadingAccounts ? '...' : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">Total across all accounts</div>
@@ -266,7 +266,7 @@ export default function Home() {
                 </svg>
                 Income
               </div>
-              <div className="mt-3 text-3xl font-bold">
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
                 {loadingTransactions ? '...' : `$${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">Total income earned</div>
@@ -280,7 +280,7 @@ export default function Home() {
                 </svg>
                 Expenses
               </div>
-              <div className="mt-3 text-3xl font-bold">
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
                 {loadingTransactions ? '...' : `$${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">Total expenses spent</div>
@@ -294,7 +294,7 @@ export default function Home() {
                 </svg>
                 My Debts
               </div>
-              <div className="mt-3 text-3xl font-bold">
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
                 {loadingAccounts ? '...' : `$${totalDebts.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">

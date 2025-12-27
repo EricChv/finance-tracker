@@ -310,7 +310,7 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Total Income</CardDescription>
-                <CardTitle className="text-2xl text-green-600">
+                <CardTitle className="text-3xl text-green-600">
                   ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </CardTitle>
               </CardHeader>
@@ -319,7 +319,7 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Total Expenses</CardDescription>
-                <CardTitle className="text-2xl text-red-600">
+                <CardTitle className="text-3xl text-red-600">
                   ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </CardTitle>
               </CardHeader>
@@ -328,7 +328,7 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Net Balance</CardDescription>
-                <CardTitle className={`text-2xl ${totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <CardTitle className={`text-3xl ${totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   ${(totalIncome - totalExpenses).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </CardTitle>
               </CardHeader>
