@@ -13,6 +13,7 @@ import {
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import Link from "next/link"
 import {
   Sidebar,
   SidebarContent,
@@ -56,7 +57,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a href="#" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <div className="bg-white flex size-6 items-center justify-center rounded-md">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2A363B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
                     <path d="M7 2h10"></path>
@@ -65,7 +66,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
                   </svg>
                 </div>
                 <span className="text-base font-semibold">Spending Tracker</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

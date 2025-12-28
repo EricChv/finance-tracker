@@ -38,30 +38,23 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
 
   return (
     <div
-      className={`relative max-w-md h-64 p-7 rounded-[2.5rem] shadow-xl
+      className={`relative w-full max-w-md aspect-[1.586/1] 
+        p-5 sm:p-6 md:p-7 rounded-[1.8rem] md:rounded-[2.5rem] shadow-xl
         transition-all duration-300 ease-in-out  
         ${colors[index % colors.length]} 
-        text-white
-        border border-white/10
-        ring-1 ring-inset ring-white/30`}
+        text-white border border-white/10 ring-1 ring-inset ring-white/30
+        flex-shrink-0 overflow-hidden`}
     >
-      {/* Delete Button - Positioned absolutely for a cleaner look */}
+      {/* Delete Button - Scaled for smaller screens */}
       {showDeleteButton && onDelete && (
         <button
           onClick={() => onDelete(account.id)}
-          className="absolute top-5 right-5 z-10 flex items-center justify-center w-8 h-8 
-                     rounded-full bg-white/20 hover:bg-red-500/80 backdrop-blur-md 
-                     transition-colors duration-200 group"
+          className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10 flex items-center justify-center 
+                     w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-red-500/80 
+                     backdrop-blur-md transition-colors"
           title="Remove Account"
         >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            strokeWidth="2.5" 
-            stroke="currentColor" 
-            className="w-4 h-4 text-white"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5 sm:w-4 sm:h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -69,34 +62,27 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
 
       <div className="flex flex-col h-full justify-between">
         {/* Header: Name and Logo */}
-        <div className="flex justify-between items-start pr-10"> {/* Added padding-right to avoid X overlap */}
-          <div className="text-2xl font-semibold tracking-tight leading-tight">
+        <div className="flex justify-between items-start pr-8">
+          <div className="text-lg sm:text-xl md:text-xl font-semibold tracking-tight leading-tight line-clamp-2 md:line-clamp-none">
             {account.institution_name || 'Bank Account'}
           </div>
-          {account.institution_logo && (
-            <img 
-              src={account.institution_logo} 
-              alt="logo" 
-              className="w-10 h-10 object-contain opacity-90 rounded-lg" 
-            />
-          )}
         </div>
 
         {/* Center: Account Info */}
-        <div className="mt-4">
-          <p className="text-xs opacity-70 uppercase tracking-widest font-medium">
+        <div className="mt-2 md:mt-4">
+          <p className="text-[9px] md:text-[10px] opacity-70 uppercase tracking-widest font-medium truncate">
             {account.name}
           </p>
-          <p className="text-xl tracking-[0.2em] font-mono mt-1">
+          <p className="text-base sm:text-lg md:text-lg tracking-[0.1em] font-mono ">
             **** **** **** {account.account_number_last_four || '----'}
           </p>
         </div>
 
         {/* Bottom: Balance */}
         <div className="flex justify-between items-end">
-          <div>
-            <p className="text-[10px] opacity-60 uppercase tracking-wider">Available Balance</p>
-            <p className="text-3xl font-bold tracking-tighter">
+          <div className="overflow-hidden">
+            <p className="text-[9px] md:text-[10px] opacity-60 uppercase tracking-wider mt-2">Available Balance</p>
+            <p className="text-xl sm:text-2xl md:text-2xl font-bold tracking-tighter truncate">
               ${account.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>

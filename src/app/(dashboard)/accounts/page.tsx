@@ -450,19 +450,24 @@ export default function AccountsPage() {
           )}
 
           {/* ═══════════════════════════════════════════════════════════ */}
-          {/* ACCOUNTS GRID - Display all accounts as colorful cards */}
-          {/* ═══════════════════════════════════════════════════════════ */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Loop through all accounts and render a card for each */}
-            {accounts.map((account, index) => (
-              <AccountCard
-                key={account.id}
-                account={account}
-                index={index}
-                onDelete={deleteAccount}
-                showDeleteButton={true}
-              />
-            ))}
+          {/* ACCOUNTS GRID - Match Dashboard style */}
+          <div className="rounded-xl border bg-card p-6">
+            
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading accounts...</p>
+            ) : accounts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No accounts yet.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {accounts.map((account, index) => (
+                  <AccountCard
+                    key={account.id}
+                    account={account}
+                    index={index}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ═══════════════════════════════════════════════════════════ */}

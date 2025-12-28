@@ -217,6 +217,8 @@ export default function Home() {
     )
   }
   
+
+
   // User is authenticated → render the full dashboard
   return (
     <SidebarProvider>
@@ -413,6 +415,7 @@ export default function Home() {
                     key={account.id}
                     account={account}
                     index={index}
+
                   />
                 ))}
               </div>
