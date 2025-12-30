@@ -62,19 +62,27 @@ export default function Home() {
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient()
+      
+      // 1. Fetch session from Supabase
       const { data: { session } } = await supabase.auth.getSession()
       
+      // 2. Redirect if no session exists
       if (!session) {
-        // No user logged in → redirect to login page
         router.push('/login')
-      } else {
-        // User is logged in → store user info and allow dashboard to render
-        setUser({
-          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || 'user@example.com'
-        })
-        setLoading(false)
+        return // Exit early to avoid running the 'else' logic
       }
+
+      // 3. Destructure metadata since names are guaranteed to exist
+      const { first_name, last_name } = session.user.user_metadata
+
+      // 4. Update state with the confirmed user data
+      setUser({
+        name: `${first_name} ${last_name}`,
+        email: session.user.email
+      })
+      
+      // 5. Reveal the dashboard
+      setLoading(false)
     }
     
     checkAuth()
@@ -227,7 +235,7 @@ export default function Home() {
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Separator orientation="vertical"  />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
@@ -247,7 +255,7 @@ export default function Home() {
           {/* Top Stats Grid */}
           <div className="grid gap-4 md:grid-cols-4">
             {/* My Balance */}
-            <div className="rounded-xl border bg-card p-6 ">
+            <div className="rounded-xl border bg-card p-6 shadow-lg ">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -261,7 +269,7 @@ export default function Home() {
             </div>
 
             {/* Income */}
-            <div className="rounded-xl border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -275,7 +283,7 @@ export default function Home() {
             </div>
 
             {/* Expenses */}
-            <div className="rounded-xl border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
@@ -289,7 +297,7 @@ export default function Home() {
             </div>
 
             {/* My Debts */}
-            <div className="rounded-xl border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -308,7 +316,7 @@ export default function Home() {
           {/* Middle Section - Credit Cards & Transactions */}
           <div className="grid gap-4 md:grid-cols-2">
             {/* Credit Cards Due Soon */}
-            <div className="rounded-xl border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">Credit Cards Due Soon</h3>
                 {!loadingAccounts && accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length > 0 && (
@@ -354,7 +362,7 @@ export default function Home() {
             </div>
 
             {/* Recent Transactions */}
-            <div className="rounded-xl border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">Recent Transactions</h3>
                 <button className="text-xs text-muted-foreground hover:text-foreground">View All</button>
@@ -395,7 +403,7 @@ export default function Home() {
           </div>
 
           {/* My Wallet */}
-          <div className="rounded-xl border bg-card p-6">
+          <div className="rounded-xl border bg-card p-6 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold">My Wallet</h3>
               <Link href="/accounts" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all h-9 px-4 py-2 border border-border bg-background text-foreground hover:bg-accent">+ Add New</Link>
@@ -409,7 +417,7 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">No accounts yet. Click "+ Add New" to add your first account.</p>
             ) : (
               // Display real accounts from database
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 lg:max-w-8xl">
                 {accounts.map((account, index) => (
                   <AccountCard
                     key={account.id}

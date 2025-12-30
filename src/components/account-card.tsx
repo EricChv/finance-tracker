@@ -21,15 +21,12 @@ type AccountCardProps = {
 };
 
 const colors = [
-  'bg-[#B33F24]', // Burnt Terracotta
-  'bg-[#2D5A27]', // Forest Grove
-  'bg-[#936639]', // Leather Brown
-  'bg-[#704264]', // Muted Plum
-  'bg-[#1E5F74]', // Deep Petrol Blue
-  'bg-[#A67C00]', // Harvest Gold
-  'bg-[#4A5D23]', // Moss Green
-  'bg-[#8D3B3B]', // Oxblood Red
-  'bg-[#524B80]', // Slate Lavender
+  'bg-[#433D3C]', // Dark Brown/Gray
+  'bg-[#7D5A50]', // Warm Brown
+  'bg-[#B4846C]', // Muted Orange
+  'bg-[#3E4A3D]', // Muted Deep Green
+  'bg-[#6D8299]', // Soft Blue-Gray
+  'bg-[#A0937D]', // Warm Beige-Green
 ];
 
 
@@ -39,19 +36,25 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
   return (
     <div
       className={`relative w-full max-w-md aspect-[1.586/1] 
-        p-5 sm:p-6 md:p-7 rounded-[1.8rem] md:rounded-[2.5rem] shadow-xl
-        transition-all duration-300 ease-in-out  
+        p-5 sm:p-6 md:p-7 rounded-[1.8rem] md:rounded-[2.5rem] 
+        /* Modern Shadow Stack */
+        shadow-lg hover:shadow-xl
+        /* Interaction */
+        hover:-translate-y-1 transition-all duration-300 ease-out
         ${colors[index % colors.length]} 
-        text-white border border-white/10 ring-1 ring-inset ring-white/30
-        flex-shrink-0 overflow-hidden`}
+        text-white border border-white/10 ring-1 ring-inset ring-white/20
+        flex-shrink-0 overflow-hidden min-h-[200px] group`}
     >
-      {/* Delete Button - Scaled for smaller screens */}
+      {/* Decorative Gradient Overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/5 pointer-events-none" />
+
+      {/* Delete Button */}
       {showDeleteButton && onDelete && (
         <button
           onClick={() => onDelete(account.id)}
           className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10 flex items-center justify-center 
-                     w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-red-500/80 
-                     backdrop-blur-md transition-colors"
+                     w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-red-500/90 
+                     backdrop-blur-md transition-all border border-white/20 shadow-lg"
           title="Remove Account"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5 sm:w-4 sm:h-4">
@@ -60,20 +63,20 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
         </button>
       )}
 
-      <div className="flex flex-col h-full justify-between">
+      <div className="relative flex flex-col h-full justify-between z-1">
         {/* Header: Name and Logo */}
         <div className="flex justify-between items-start pr-8">
-          <div className="text-lg sm:text-xl md:text-xl font-semibold tracking-tight leading-tight line-clamp-2 md:line-clamp-none">
+          <div className="text-lg sm:text-xl md:text-xl font-semibold tracking-tight leading-tight line-clamp-2">
             {account.institution_name || 'Bank Account'}
           </div>
         </div>
 
         {/* Center: Account Info */}
         <div className="mt-2 md:mt-4">
-          <p className="text-[9px] md:text-[10px] opacity-70 uppercase tracking-widest font-medium truncate">
+          <p className="text-[9px] md:text-[10px] opacity-80 uppercase tracking-widest font-bold truncate">
             {account.name}
           </p>
-          <p className="text-base sm:text-lg md:text-lg tracking-[0.1em] font-mono ">
+          <p className="text-base sm:text-lg md:text-lg tracking-[0.15em] font-mono mt-1">
             **** **** **** {account.account_number_last_four || '----'}
           </p>
         </div>
@@ -81,8 +84,8 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
         {/* Bottom: Balance */}
         <div className="flex justify-between items-end">
           <div className="overflow-hidden">
-            <p className="text-[9px] md:text-[10px] opacity-60 uppercase tracking-wider mt-2">Available Balance</p>
-            <p className="text-xl sm:text-2xl md:text-2xl font-bold tracking-tighter truncate">
+            <p className="text-[9px] md:text-[10px] opacity-70 uppercase tracking-wider">Available Balance</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tighter truncate">
               ${account.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>

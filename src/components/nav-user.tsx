@@ -1,9 +1,38 @@
-import {
+  
+  import {
   IconDotsVertical,
   IconLogout,
   IconSettings,
   IconUserCircle,
+  IconInnerShadowTop,
 } from "@tabler/icons-react"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase"
+// Helper to get system dark mode preference
+function getSystemDark() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+// Helper to get saved theme
+function getSavedTheme() {
+  if (typeof window === 'undefined') return 'system';
+  return localStorage.getItem('theme') || 'system';
+}
+
+// Helper to set theme
+function setTheme(theme: 'light' | 'dark' | 'system') {
+  if (typeof window === 'undefined') return;
+  if (theme === 'system') {
+    document.documentElement.classList.remove('dark');
+    if (getSystemDark()) document.documentElement.classList.add('dark');
+  } else if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  localStorage.setItem('theme', theme);
+}
 
 import {
   Avatar,
@@ -36,6 +65,13 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+
+  // Dark mode state
+  const [theme, setThemeState] = useState<'light' | 'dark' | 'system'>(getSavedTheme() as any)
+
+  useEffect(() => {
+    setTheme(theme)
+  }, [theme])
 
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -74,23 +110,6 @@ export function NavUser({
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
             align="end"
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg bg-[#2A363B] text-white font-semibold">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs opacity-60">
-                    {user.email}
-                  </span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <IconUserCircle />
@@ -100,9 +119,19 @@ export function NavUser({
                 <IconSettings />
                 Settings
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setThemeState(theme === 'dark' ? 'light' : 'dark')}>
+                <IconInnerShadowTop />
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                window.location.href = "/login";
+              }}
+            >
               <IconLogout />
               Log out
             </DropdownMenuItem>

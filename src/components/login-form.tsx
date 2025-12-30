@@ -32,6 +32,8 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     // Prevent the browser from refreshing the page.
@@ -65,31 +67,31 @@ export function LoginForm({
         - object → something failed (invalid credentials, user exists, weak password, etc)
     */
     const { error } = isSignUp
-      ? await supabase.auth.signUp({ email, password })
+        ? await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { first_name: firstName, last_name: lastName }
+            }
+          })
       : await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      // Display Supabase's error message to the user.
-      // (Examples: "User already registered", "Invalid login credentials", etc.)
-      setMessage(error.message)
-
+      // Custom message for already registered email during sign up
+      if (isSignUp && error.message && error.message.toLowerCase().includes("already registered")) {
+        setMessage("This email is already registered. Please log in instead.");
+      } else {
+        setMessage(error.message);
+      }
     } else {
       // No error: request succeeded.
-
-      // For sign-up:
-      // When email confirmation is ON, the user is created but *not logged in*.
-      // So we ask the user to check their email.
-      // For login:
-      // A valid session is returned, so we can redirect.
       setMessage(
         isSignUp 
           ? "Check your email to confirm your account."
           : "Success!"
-      )
-
-      // If logging in, redirect to the home page (authenticated area).
+      );
       if (!isSignUp) {
-        window.location.href = "/"
+        window.location.href = "/";
       }
     }
 
@@ -156,13 +158,38 @@ export function LoginForm({
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with
               </FieldSeparator>
+              {/* First and Last Name fields only for sign up */}
+              {isSignUp && (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="firstName">First Name</FieldLabel>
+                    <Input
+                      id="firstName"
+                      value={firstName}
+                      placeholder="First Name"
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="lastName">Last Name</FieldLabel>
+                    <Input
+                      id="lastName"
+                      value={lastName}
+                      placeholder="Last Name"
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                    />
+                  </Field>
+                </>
+              )}
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
                   type="email"
                   value={email}
-                  placeholder="user@example.com"
+                  placeholder="Email"
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
@@ -170,18 +197,20 @@ export function LoginForm({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
+                  {!isSignUp && (
+                    <a
+                      href="#"
+                      className="ml-auto text-sm underline-offset-4 hover:underline"
+                    >
+                      Forgot your password?
+                    </a>
+                  )}
                 </div>
                 <Input
                   id="password"
                   type="password"
                   value={password}
-                  placeholder="••••••"
+                  placeholder="Password"
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
