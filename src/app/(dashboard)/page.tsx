@@ -60,33 +60,43 @@ export default function Home() {
   // AUTHENTICATION CHECK (runs once when page loads)
   // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
-      
-      // 1. Fetch session from Supabase
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      // 2. Redirect if no session exists
-      if (!session) {
-        router.push('/login')
-        return // Exit early to avoid running the 'else' logic
-      }
-
-      // 3. Destructure metadata since names are guaranteed to exist
-      const { first_name, last_name } = session.user.user_metadata
-
-      // 4. Update state with the confirmed user data
-      setUser({
-        name: `${first_name} ${last_name}`,
-        email: session.user.email
-      })
-      
-      // 5. Reveal the dashboard
-      setLoading(false)
-    }
+  const checkAuth = async () => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
     
-    checkAuth()
-  }, [router])  // Runs once on mount, reruns if router changes
+    if (!session) {
+      router.push('/login')
+      return
+    }
+
+    // 1. Access metadata or default to an empty object
+    const meta = session.user.user_metadata || {};
+
+    // 2. Extract First Name
+    // Priority: Explicit field > Google's given_name > Split Google full name > Email prefix
+    const firstName =
+      meta.first_name || // Standard
+      meta.given_name || // Google
+      'User';
+
+    // 3. Extract Last Name
+    // Priority: Explicit field > Google's family_name > The rest of the Google full name
+    const lastName =
+      meta.last_name || // Standard
+      meta.family_name || // Google
+      ''; // if none of the above, set null
+
+    // 4. Update state with the results
+    setUser({
+      name: lastName ? `${firstName} ${lastName}` : firstName,
+      email: session.user.email || 'user@example.com'
+    })
+    
+    setLoading(false)
+  }
+  
+  checkAuth()
+}, [router])
   
   // ═══════════════════════════════════════════════════════════════════
   // FETCH TRANSACTIONS FROM DATABASE (runs once when page loads)
