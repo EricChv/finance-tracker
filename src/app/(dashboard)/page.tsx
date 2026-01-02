@@ -60,43 +60,23 @@ export default function Home() {
   // AUTHENTICATION CHECK (runs once when page loads)
   // ═══════════════════════════════════════════════════════════════════
   useEffect(() => {
-  const checkAuth = async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (!session) {
-      router.push('/login')
-      return
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        router.push('/login')
+      } else {
+        setUser({
+          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || 'user@example.com'
+        })
+        setLoading(false)
+      }
     }
-
-    // 1. Access metadata or default to an empty object
-    const meta = session.user.user_metadata || {};
-
-    // 2. Extract First Name
-    // Priority: Explicit field > Google's given_name > Split Google full name > Email prefix
-    const firstName =
-      meta.first_name || // Standard
-      meta.given_name || // Google
-      'User';
-
-    // 3. Extract Last Name
-    // Priority: Explicit field > Google's family_name > The rest of the Google full name
-    const lastName =
-      meta.last_name || // Standard
-      meta.family_name || // Google
-      ''; // if none of the above, set null
-
-    // 4. Update state with the results
-    setUser({
-      name: lastName ? `${firstName} ${lastName}` : firstName,
-      email: session.user.email || 'user@example.com'
-    })
     
-    setLoading(false)
-  }
-  
-  checkAuth()
-}, [router])
+    checkAuth()
+  }, [router])
   
   // ═══════════════════════════════════════════════════════════════════
   // FETCH TRANSACTIONS FROM DATABASE (runs once when page loads)
