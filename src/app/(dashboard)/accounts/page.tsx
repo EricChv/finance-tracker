@@ -59,6 +59,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TellerButton } from "@/components/teller-button"
 
 // ═══════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
@@ -326,12 +327,7 @@ export default function AccountsPage() {
             </div>
             <div className="flex gap-2 mt-2 md:mt-0">
               {/* Connect Bank Button - Ready for Teller.io integration */}
-              <Button 
-                onClick={() => alert('Connect bank functionality - integrate Teller.io here')}
-                variant="default"
-              >
-                🏦 Connect Bank
-              </Button>
+              <TellerButton />
 
               {/* Toggle button: Shows "+ Add New" or "Cancel" based on form visibility */}
               <Button 

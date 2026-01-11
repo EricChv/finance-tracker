@@ -65,7 +65,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
                     <rect width="18" height="12" x="3" y="10" rx="2"></rect>
                   </svg>
                 </div>
-                <span className="text-base font-semibold">Spending Tracker</span>
+                <span className="text-base font-semibold">Finance Tracker</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
