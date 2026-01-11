@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button"
 
 type TellerButtonProps = React.ComponentProps<typeof Button> & {
   label?: string
+  onSuccess?: (enrollment: { accessToken: string; user?: any }) => void | Promise<void>
 }
 
 export function TellerButton({
   label = "🏦 Connect Bank",
   children,
+  onSuccess,
   ...buttonProps
 }: TellerButtonProps) {
   const [tellerInstance, setTellerInstance] = useState<any>(null)
@@ -27,6 +29,7 @@ export function TellerButton({
         products: ["verify"],
         onSuccess(enrollment) {
           console.log("Success!", enrollment.accessToken)
+          onSuccess?.(enrollment)
         },
         onExit() {
           console.log("User closed Teller")
@@ -36,7 +39,7 @@ export function TellerButton({
       setTellerInstance(instance)
       return () => instance.destroy?.()
     }
-  }, [])
+  }, [onSuccess])
 
   const handleClick: MouseEventHandler<HTMLButtonElement> = (event) => {
     // Prevent open if another handler cancelled the click

@@ -264,6 +264,36 @@ export default function AccountsPage() {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // HANDLE TELLER SUCCESS - Process bank enrollment
+  // ═══════════════════════════════════════════════════════════════════
+
+  const handleTellerSuccess = async (enrollment: { accessToken: string; user?: any }) => {
+    try {
+      // Save enrollment to your database via API
+      const response = await fetch('/api/accounts/teller-enrollment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken: enrollment.accessToken,
+          user: enrollment.user,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save enrollment')
+      }
+
+      // Refresh accounts list
+      await fetchAccounts()
+      alert('Bank connected successfully!')
+    } catch (error) {
+      console.error('Error saving enrollment:', error)
+      alert(`Failed to save bank connection: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // LOADING STATE - Show spinner while checking authentication
   // ═══════════════════════════════════════════════════════════════════
   
@@ -327,7 +357,7 @@ export default function AccountsPage() {
             </div>
             <div className="flex gap-2 mt-2 md:mt-0">
               {/* Connect Bank Button - Ready for Teller.io integration */}
-              <TellerButton />
+              <TellerButton onSuccess={handleTellerSuccess} />
 
               {/* Toggle button: Shows "+ Add New" or "Cancel" based on form visibility */}
               <Button 
