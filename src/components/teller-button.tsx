@@ -26,7 +26,7 @@ export function TellerButton({
       const instance = window.TellerConnect.setup({
         applicationId: process.env.NEXT_PUBLIC_TELLER_APP_ID,
         environment:'sandbox',
-        products: ["verify"],
+        products: ["balance", "transactions"],
         onSuccess(enrollment) {
           console.log("Success!", enrollment.accessToken)
           onSuccess?.(enrollment)

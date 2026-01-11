@@ -267,31 +267,40 @@ export default function AccountsPage() {
   // HANDLE TELLER SUCCESS - Process bank enrollment
   // ═══════════════════════════════════════════════════════════════════
 
-  const handleTellerSuccess = async (enrollment: { accessToken: string; user?: any }) => {
-    try {
-      // Save enrollment to your database via API
-      const response = await fetch('/api/accounts/teller-enrollment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accessToken: enrollment.accessToken,
-          user: enrollment.user,
-        }),
-      })
+    const handleTellerSuccess = async (enrollment: { accessToken: string; user?: any }) => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        const supabaseAccessToken = session?.access_token
+        const supabaseRefreshToken = session?.refresh_token
+        if (!supabaseAccessToken || !supabaseRefreshToken) {
+          throw new Error('Not logged in')
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save enrollment')
+        const response = await fetch('/api/accounts/teller-enrollment', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accessToken: enrollment.accessToken,
+            supabaseAccessToken,
+            supabaseRefreshToken,
+          }),
+        })
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to save enrollment')
+        }
+
+        // Wait a moment for the database to sync, then refresh accounts
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        await fetchAccounts()
+        alert('Bank connected successfully!')
+      } catch (error) {
+        console.error('Error saving enrollment:', error)
+        alert(`Failed to save bank connection: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
-
-      // Refresh accounts list
-      await fetchAccounts()
-      alert('Bank connected successfully!')
-    } catch (error) {
-      console.error('Error saving enrollment:', error)
-      alert(`Failed to save bank connection: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
-  }
 
   // ═══════════════════════════════════════════════════════════════════
   // LOADING STATE - Show spinner while checking authentication
@@ -473,6 +482,8 @@ export default function AccountsPage() {
                     key={account.id}
                     account={account}
                     index={index}
+                    onDelete={deleteAccount}
+                    showDeleteButton={true}
                   />
                 ))}
               </div>

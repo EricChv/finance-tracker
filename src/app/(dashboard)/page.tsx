@@ -149,6 +149,26 @@ export default function Home() {
   }, [])  // Empty array [] = run once when component mounts, never run again
   
   // ═══════════════════════════════════════════════════════════════════
+  // DELETE ACCOUNT
+  // ═══════════════════════════════════════════════════════════════════
+  const deleteAccount = async (id: string) => {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting account:', error)
+      alert('Failed to delete account')
+    } else {
+      // Remove from local state
+      setAccounts(accounts.filter(acc => acc.id !== id))
+      alert('Account deleted successfully')
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════
   // EVENT HANDLERS (functions triggered by user actions)
   // ═══════════════════════════════════════════════════════════════════
   
@@ -181,23 +201,25 @@ export default function Home() {
   // FINANCIAL CALCULATIONS (computed from database data)
   // ═══════════════════════════════════════════════════════════════════
   
-  // Total Income: sum of all transactions where type = 'income'
+  // Total Balance: sum of depository accounts (checking + savings) only
+  const totalBalance = accounts
+    .filter(acc => acc.type === 'depository')  // Only checking/savings, not credit cards
+    .reduce((sum, acc) => sum + (acc.balance_available || acc.balance_current || 0), 0)
+  
+  // Total Income: sum of all positive transactions
   const totalIncome = allTransactions
-    .filter(t => t.type === 'income')  // Only income transactions
-    .reduce((sum, t) => sum + t.amount, 0)  // Add up all amounts (starts at 0)
+    .filter(t => t.amount > 0)  // Positive amounts = income
+    .reduce((sum, t) => sum + t.amount, 0)
   
-  // Total Expenses: sum of all transactions where type = 'expense'
+  // Total Expenses: sum of all negative transactions (absolute value)
   const totalExpenses = allTransactions
-    .filter(t => t.type === 'expense')  // Only expense transactions
-    .reduce((sum, t) => sum + t.amount, 0)  // Add up all amounts
+    .filter(t => t.amount < 0)  // Negative amounts = expenses
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
   
-  // Total Balance: sum of all account balances (checking + savings + credit cards)
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0)
-  
-  // Total Debts: sum of negative balances on credit cards only
+  // Total Debts: sum of credit card balances that are negative
   const totalDebts = accounts
-    .filter(acc => acc.type === 'credit_card' && acc.balance < 0)  // Only credit cards with debt
-    .reduce((sum, acc) => sum + Math.abs(acc.balance), 0)  // Make positive and add up
+    .filter(acc => acc.type === 'credit_card' && acc.balance_current < 0)  // Only credit cards with debt
+    .reduce((sum, acc) => sum + Math.abs(acc.balance_current || 0), 0)
   
   // Manual Expense Total: sum of local expenses (not connected to database yet)
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0)
@@ -413,7 +435,8 @@ export default function Home() {
                     key={account.id}
                     account={account}
                     index={index}
-
+                    onDelete={deleteAccount}
+                    showDeleteButton={true}
                   />
                 ))}
               </div>

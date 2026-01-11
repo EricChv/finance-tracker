@@ -1,11 +1,15 @@
 import React from 'react';
+import { getBankBranding } from '@/lib/bank-colors';
 
-type PlaidAccount = {
+type TellerAccount = {
   id: string;
   name: string;
   type: string;
-  balance: number;
+  balance?: number;
+  balance_current?: number;
+  balance_available?: number;
   account_number_last_four?: string;
+  last_four?: string;
   institution_name?: string;
   institution_logo?: string;
   expiry?: string;
@@ -14,7 +18,7 @@ type PlaidAccount = {
 import { Button } from "@/components/ui/button";
 
 type AccountCardProps = {
-  account: PlaidAccount;
+  account: TellerAccount;
   index?: number;
   onDelete?: (id: string) => void;
   showDeleteButton?: boolean;
@@ -30,8 +34,17 @@ const colors = [
 ];
 
 
-const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete, showDeleteButton }) => {
+const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete, showDeleteButton = true }) => {
   if (!account) return <div className="p-6 text-center text-gray-500">No account found.</div>;
+
+  const { color, logo } = getBankBranding(account.institution_name);
+  const balance = account.balance_available ?? account.balance_current ?? account.balance ?? 0;
+
+  const handleDelete = () => {
+    if (onDelete && confirm(`Delete ${account.name}?`)) {
+      onDelete(account.id);
+    }
+  };
 
   return (
     <div
@@ -41,7 +54,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
         shadow-lg hover:shadow-xl
         /* Interaction */
         hover:-translate-y-1 transition-all duration-300 ease-out
-        ${colors[index % colors.length]} 
+        ${color}
         text-white border border-white/10 ring-1 ring-inset ring-white/20
         flex-shrink-0 overflow-hidden min-h-[200px] group`}
     >
@@ -49,9 +62,9 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/5 pointer-events-none" />
 
       {/* Delete Button */}
-      {showDeleteButton && onDelete && (
+      {showDeleteButton && (
         <button
-          onClick={() => onDelete(account.id)}
+          onClick={handleDelete}
           className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10 flex items-center justify-center 
                      w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 hover:bg-red-500/90 
                      backdrop-blur-md transition-all border border-white/20 shadow-lg"
@@ -64,8 +77,18 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
       )}
 
       <div className="relative flex flex-col h-full justify-between z-1">
-        {/* Header: Name and Logo */}
-        <div className="flex justify-between items-start pr-8">
+        {/* Header: Logo and Bank Name */}
+        <div className="flex items-center gap-3 pr-8">
+          {logo && (
+            <img 
+              src={logo} 
+              alt={account.institution_name} 
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover bg-white/20 p-1 flex-shrink-0"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
           <div className="text-lg sm:text-xl md:text-xl font-semibold tracking-tight leading-tight line-clamp-2">
             {account.institution_name || 'Bank Account'}
           </div>
@@ -77,7 +100,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
             {account.name}
           </p>
           <p className="text-base sm:text-lg md:text-lg tracking-[0.15em] font-mono mt-1">
-            **** **** **** {account.account_number_last_four || '----'}
+            **** **** **** {account.last_four || account.account_number_last_four || '----'}
           </p>
         </div>
 
@@ -86,7 +109,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, index = 0, onDelete,
           <div className="overflow-hidden">
             <p className="text-[9px] md:text-[10px] opacity-70 uppercase tracking-wider">Available Balance</p>
             <p className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tighter truncate">
-              ${account.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>
         </div>
