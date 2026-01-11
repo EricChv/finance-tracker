@@ -12,6 +12,7 @@ declare global {
 interface TellerConfig {
   applicationId: string;
   products: string[];
+  environment?: 'sandbox' | 'production';
   onSuccess: (enrollment: { accessToken: string; user: any }) => void;
   onInit?: () => void;
   onExit?: () => void;
