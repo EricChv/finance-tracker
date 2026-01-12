@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase"
@@ -85,10 +85,20 @@ export default function Home() {
     const fetchTransactions = async () => {
       const supabase = createClient()
 
-      // Query 1: Get ALL transactions (for calculating totals like income/expenses)
+      // Get all account IDs (depository, credit cards, and all types)
+      const allAccountIds = accounts
+        .map(acc => acc.teller_account_id || acc.id)
+
+      if (allAccountIds.length === 0) {
+        setLoadingTransactions(false)
+        return
+      }
+
+      // Query 1: Get ALL transactions from all account types (for calculating totals)
       const { data: allData, error: allError } = await supabase
         .from('transactions')
         .select('*')
+        .in('account_id', allAccountIds)  // All account transactions
         .order('date', { ascending: false })
       
       if (allError) {
@@ -97,10 +107,11 @@ export default function Home() {
         setAllTransactions(allData || [])  // Store all transactions for calculations
       }
 
-      // Query 2: Get only 3 most recent transactions (for "Recent Transactions" UI section)
+      // Query 2: Get only 3 most recent transactions from all accounts (for "Recent Transactions" UI section)
       const { data, error} = await supabase
         .from('transactions')
         .select('*')
+        .in('account_id', allAccountIds)  // All account transactions
         .order('date', { ascending: false })
         .limit(3)  // Only need 3 for display
       
@@ -118,7 +129,7 @@ export default function Home() {
     }
 
     fetchTransactions()
-  }, [])  // Empty array [] = run once when component mounts, never run again
+  }, [accounts])  // Re-run when accounts change
   
   // ═══════════════════════════════════════════════════════════════════
   // FETCH ACCOUNTS FROM DATABASE (runs once when page loads)
@@ -127,7 +138,7 @@ export default function Home() {
     const fetchAccounts = async () => {
       const supabase = createClient()
 
-      // Query all accounts (checking, savings, credit cards)
+      // Query all account types (depository, credit cards, investment, etc.)
       const { data, error } = await supabase
         .from('accounts')
         .select('*')
@@ -201,24 +212,36 @@ export default function Home() {
   // FINANCIAL CALCULATIONS (computed from database data)
   // ═══════════════════════════════════════════════════════════════════
   
-  // Total Balance: sum of depository accounts (checking + savings) only
-  const totalBalance = accounts
-    .filter(acc => acc.type === 'depository')  // Only checking/savings, not credit cards
-    .reduce((sum, acc) => sum + (acc.balance_available || acc.balance_current || 0), 0)
-  
-  // Total Income: sum of all positive transactions
-  const totalIncome = allTransactions
-    .filter(t => t.amount > 0)  // Positive amounts = income
-    .reduce((sum, t) => sum + t.amount, 0)
-  
-  // Total Expenses: sum of all negative transactions (absolute value)
-  const totalExpenses = allTransactions
-    .filter(t => t.amount < 0)  // Negative amounts = expenses
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-  
-  // Total Debts: sum of credit card balances that are negative
-  const totalDebts = accounts
-    .filter(acc => acc.type === 'credit_card' && acc.balance_current < 0)  // Only credit cards with debt
+  // Total Debt: sum of all credit card balances (negative = owed)
+  const totalDebt = accounts
+    .filter(acc => acc.type === 'credit' || acc.type === 'credit_card')  // Teller uses 'credit'
+    .reduce((sum, acc) => sum + Math.abs(acc.balance_current || 0), 0)
+
+  // Total Depository Balance: sum of all depository account balances
+  const totalDepositoryBalance = accounts
+    .filter(acc => acc.type === 'depository' || acc.type === 'checking' || acc.type === 'savings')
+    .reduce((sum, acc) => sum + (acc.balance_current || 0), 0)
+
+  // Map teller_account_id -> account type for transaction classification
+  const accountTypeByTellerId = useMemo(() => {
+    const map: Record<string, string> = {}
+    accounts.forEach(acc => {
+      const key = acc.teller_account_id || acc.id
+      if (key) {
+        map[key] = acc.type || 'depository'
+      }
+    })
+    return map
+  }, [accounts])
+
+  // Credit Available: sum of available balance from credit cards
+  const creditAvailable = accounts
+    .filter(acc => acc.type === 'credit' || acc.type === 'credit_card')
+    .reduce((sum, acc) => sum + Math.abs(acc.balance_available || 0), 0)
+
+  // Credit Used: sum of current balance from credit cards (negative balances)
+  const creditUsed = accounts
+    .filter(acc => acc.type === 'credit' || acc.type === 'credit_card')
     .reduce((sum, acc) => sum + Math.abs(acc.balance_current || 0), 0)
   
   // Manual Expense Total: sum of local expenses (not connected to database yet)
@@ -252,7 +275,7 @@ export default function Home() {
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="#">
-                    Finance Tracker
+                    Debt Tracker
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
@@ -265,62 +288,76 @@ export default function Home() {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           {/* Top Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-4">
-            {/* My Balance */}
+          <div className="grid gap-4 md:grid-cols-5">
+            {/* Depository Balance */}
+            <div className="rounded-xl border bg-card p-6 shadow-lg">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Depository Balance
+              </div>
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate text-green-600">
+                {loadingAccounts ? '...' : `$${totalDepositoryBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Checking & Savings</div>
+            </div>
+
+            {/* Total Debt */}
             <div className="rounded-xl border bg-card p-6 shadow-lg ">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                My Balance
+                Total Debt
               </div>
-              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
-                {loadingAccounts ? '...' : `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate text-red-600">
+                {loadingAccounts ? '...' : `$${totalDebt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">Total across all accounts</div>
+              <div className="mt-1 text-xs text-muted-foreground">Total credit card debt</div>
             </div>
 
-            {/* Income */}
+            {/* Credit Available */}
             <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
-                Income
+                Credit Available
               </div>
-              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
-                {loadingTransactions ? '...' : `$${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate text-green-600">
+                {loadingAccounts ? '...' : `$${creditAvailable.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">Total income earned</div>
+              <div className="mt-1 text-xs text-muted-foreground">Available credit limit</div>
             </div>
 
-            {/* Expenses */}
+            {/* Credit Used */}
             <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                 </svg>
-                Expenses
+                Credit Used
               </div>
-              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
-                {loadingTransactions ? '...' : `$${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate text-red-600">
+                {loadingAccounts ? '...' : `$${creditUsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">Total expenses spent</div>
+              <div className="mt-1 text-xs text-muted-foreground">Current balance owed</div>
             </div>
 
-            {/* My Debts */}
+            {/* Accounts Tracked */}
             <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                My Debts
+                Accounts Tracked
               </div>
               <div className="mt-3 font-bold text-2xl md:text-xl overflow-hidden truncate">
-                {loadingAccounts ? '...' : `$${totalDebts.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                {loadingAccounts ? '...' : accounts.length}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
-                {loadingAccounts ? '' : `Across ${accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length} credit cards`}
+                {loadingAccounts ? '' : `All connected accounts`}
               </div>
             </div>
           </div>
@@ -331,21 +368,21 @@ export default function Home() {
             <div className="rounded-xl border bg-card p-6 shadow-lg">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">Credit Cards Due Soon</h3>
-                {!loadingAccounts && accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length > 0 && (
+                {!loadingAccounts && accounts.filter(acc => (acc.type === 'credit' || acc.type === 'credit_card') && acc.balance_current < 0).length > 0 && (
                   <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs text-red-600">
-                    {accounts.filter(acc => acc.type === 'credit_card' && acc.balance < 0).length} cards with balance
+                    {accounts.filter(acc => (acc.type === 'credit' || acc.type === 'credit_card') && acc.balance_current < 0).length} cards with balance
                   </span>
                 )}
               </div>
               
               {loadingAccounts ? (
                 <p className="text-sm text-muted-foreground">Loading credit cards...</p>
-              ) : accounts.filter(acc => acc.type === 'credit_card').length === 0 ? (
+              ) : accounts.filter(acc => acc.type === 'credit' || acc.type === 'credit_card').length === 0 ? (
                 <p className="text-sm text-muted-foreground">No credit cards added yet</p>
               ) : (
                 <div className="space-y-3">
                   {accounts
-                    .filter(acc => acc.type === 'credit_card')
+                    .filter(acc => acc.type === 'credit' || acc.type === 'credit_card')
                     .map((card) => (
                       <div key={card.id} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="flex items-center gap-3">
@@ -356,15 +393,15 @@ export default function Home() {
                           </div>
                           <div>
                             <div className="text-sm font-medium">{card.name}</div>
-                            <div className="text-xs text-muted-foreground">{card.institution}</div>
+                            <div className="text-xs text-muted-foreground">{card.institution_name}</div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-semibold">
-                            ${Math.abs(card.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ${Math.abs(card.balance_current || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
-                          <div className={`text-xs ${card.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {card.balance < 0 ? 'Balance due' : 'Credit available'}
+                          <div className={`text-xs ${(card.balance_current || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {(card.balance_current || 0) < 0 ? 'Balance due' : 'Credit available'}
                           </div>
                         </div>
                       </div>

@@ -107,6 +107,33 @@ export async function POST(request: NextRequest) {
           console.error(`Error fetching balance for ${account.id}:`, err)
         }
       }
+      
+      // Now sync transactions for all enrolled accounts
+      console.log("Starting transaction sync...")
+      const accountIds = tellerAccounts.map((acc: any) => acc.id)
+      
+      try {
+        const syncResponse = await fetch(`${new URL(request.url).origin}/api/transactions/sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken,
+            supabaseAccessToken,
+            supabaseRefreshToken,
+            accountIds,
+          }),
+        })
+        
+        if (syncResponse.ok) {
+          const syncResult = await syncResponse.json()
+          console.log("Transaction sync result:", syncResult)
+        } else {
+          const body = await syncResponse.text()
+          console.error("Transaction sync failed:", syncResponse.status, body)
+        }
+      } catch (err) {
+        console.error("Error calling transaction sync:", err)
+      }
     } else {
       console.warn("No accounts to insert from Teller response")
     }

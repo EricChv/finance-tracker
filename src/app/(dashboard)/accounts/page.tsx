@@ -157,10 +157,7 @@ export default function AccountsPage() {
     // If user isn't logged in, exit early (shouldn't happen due to checkAuth)
     if (!session) return
 
-    // Query the 'accounts' table in Supabase database
-    // .select('*') = Get all columns
-    // .eq('user_id', ...) = WHERE user_id = current user (RLS policy also enforces this)
-    // .order('created_at', ...) = Sort by newest first (descending order)
+    // Query all account types (depository, credit cards, investment, etc.)
     const { data, error } = await supabase
       .from('accounts')
       .select('*')
@@ -346,7 +343,7 @@ export default function AccountsPage() {
               
               {/* Current page (not clickable) */}
               <BreadcrumbItem>
-                <BreadcrumbPage>Accounts</BreadcrumbPage>
+                <BreadcrumbPage>Credit Cards</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
